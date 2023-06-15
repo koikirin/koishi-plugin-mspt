@@ -10,7 +10,6 @@ export class Mspt {
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
-    console.log('Initializing')
     ctx.command('mspt <pattern>')
       .option('sapk', '-f')
       .action(async ({ options }, pattern) => {
@@ -140,7 +139,7 @@ export class Mspt {
 
   generateReply(res: Mspt.Result) {
     let msg = `${res.nickname} (${this.ctx.mahjong.ms.getAccountZone(res.account_id)}${res.account_id}) `
-    msg += `${res.m4} ${res.m3}`
+    msg += `${res.m4||"[]"} ${res.m3||"[]"}`
     if (res.hm3 || res.hm4)
       msg += `\n最高段位 ${res.hm4||"[]"} ${res.hm3||"[]"}`
     msg += `\n*来源: ${res.src}`
