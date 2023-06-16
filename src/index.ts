@@ -13,6 +13,7 @@ export class Mspt {
     ctx.command('mspt <pattern>')
       .option('sapk', '-f')
       .action(async ({ options }, pattern) => {
+        if (!pattern) return
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else ret = await this.processQuery({}, null, pattern, options.sapk)
