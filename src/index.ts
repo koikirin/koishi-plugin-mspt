@@ -29,12 +29,14 @@ export class Mspt {
         let account_id
         if (pattern[0] === '$') account_id = parseInt(pattern.slice(1))
         else {
-          const res = await ctx.mahjong.ms.execute('fetchAccountInfo', {
-            pattern: pattern.slice(2),
-            search_next: false
+          const res = await ctx.mahjong.ms.execute('searchAccountByPattern', {
+            search_next: false,
+            pattern: pattern,
           })
           account_id = res.decode_id
         }
+        if (!account_id) return '查询失败'
+        
         const res = (await ctx.mahjong.ms.execute('fetchAccountInfo', {
           account_id
         })).account
@@ -55,7 +57,6 @@ export class Mspt {
   async queryAidFromSapk(res: Dict<Mspt.Result>, nickname: string) {
     const quotename = encodeURIComponent(nickname)
     try {
-      console.log(`${this.config.sapkUri}/search_player/${quotename}`)
       const data = await this.http.get(`${this.config.sapkUri}/search_player/${quotename}`, {
         params: { limit: 9 }
       })
