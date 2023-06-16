@@ -21,6 +21,35 @@ export class Mspt {
         if (ret) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
         else return '查询失败'
       })
+
+    ctx.command('mspt2 <pattern:string>')
+      .option('sapk', '-f')
+      .action(async ({ options }, pattern) => {
+        if (!pattern) return
+        let account_id
+        if (pattern[0] === '$') account_id = parseInt(pattern.slice(1))
+        else {
+          const res = await ctx.mahjong.ms.execute('fetchAccountInfo', {
+            pattern: pattern.slice(2),
+            search_next: false
+          })
+          account_id = res.decode_id
+        }
+        const res = (await ctx.mahjong.ms.execute('fetchAccountInfo', {
+          account_id
+        })).account
+        if (!res) return '查询失败'
+
+        let result: Mspt.Result = {
+          account_id: res.account_id,
+          nickname: res.nickname,
+          m4: Mspt.generateDescription(res, 'level'),
+          m3: Mspt.generateDescription(res, 'level3'),
+          src: 'Server'
+        }
+
+        return this.generateReply(result)
+      })
   }
 
   async queryAidFromSapk(res: Dict<Mspt.Result>, nickname: string) {
@@ -160,7 +189,7 @@ export namespace Mspt {
   }
 
   export function generateDescription(data, label: string = 'level') {
-    let score = data[label].score + data[label].delta
+    let score = data[label].score + (data[label].delta || 0)
     let level = data[label].id
     const iscl = Math.ceil(level / 100) % 10 === 7
     if (score < 0) {
