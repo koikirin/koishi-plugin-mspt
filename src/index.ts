@@ -10,22 +10,22 @@ export class Mspt {
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
-    ctx.command('mspt <pattern>')
+    ctx.command('mspt <pattern:text>', '查询雀魂PT')
       .option('sapk', '-f')
-      .action(async ({ options }, pattern) => {
-        if (!pattern) return
+      .usage('pattern为NICKNAME/$AID')
+      .action(async ({ session, options }, pattern) => {
+        if (!pattern) return session.execute('mspt -h')
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else ret = await this.processQuery({}, null, pattern, options.sapk)
-
         if (ret) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
         else return '查询失败'
       })
 
-    ctx.command('mspt2 <pattern:string>')
-      .option('sapk', '-f')
-      .action(async ({ options }, pattern) => {
-        if (!pattern) return
+    ctx.command('mspt/mspt2 <pattern:string>', '查询雀魂PT')
+      .usage('pattern为EID/$AID')
+      .action(async ({ session }, pattern) => {
+        if (!pattern) return session.execute('mspt2 -h')
         let account_id
         if (pattern[0] === '$') account_id = parseInt(pattern.slice(1))
         else {
@@ -151,17 +151,22 @@ export class Mspt {
 
   async processQuery(res: Dict<Mspt.Result>, accoundId?: number, nickname?: string, forceSapk: boolean = false) {
     if (accoundId) {
-      if (! await this.queryRankFromOb(res, accoundId)) {
-        this.ctx.logger('mspt').debug(`mspt $${accoundId}: OB Failed, rollback to sapk`)
-        await this.queryRankFromSapk(res, accoundId)
+      if (!forceSapk && this.config.rankQueryingPreference === 'database') {
+        const ret = await this.queryRankFromOb(res, accoundId)
+        if (!ret) this.ctx.logger('mspt').debug(`query $${accoundId}: OB Failed, rollback to sapk`)
+        else return res
       }
+      await this.queryRankFromSapk(res, accoundId)
       return res
     } else if (nickname) {
-      let aids = await this.queryAidFromOb(res, nickname)
-      this.ctx.logger('mspt').info(`mspt ${nickname}: Query aids from OB: ${aids}`)
-      if (forceSapk || !aids.length) {
+      let aids = []
+      if (!forceSapk && this.config.aidQueryingPreference === 'database') {
+        aids = await this.queryAidFromOb(res, nickname)
+        this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from OB: ${aids}`)
+      }
+      if (!aids.length) {
         aids = [...new Set([...aids, ...await this.queryAidFromSapk(res, nickname)])]
-        this.ctx.logger('mspt').info(`mspt ${nickname}: Query aids from sapk: ${aids}`)
+        this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from sapk: ${aids}`)
       }
       for (const aid of aids) await this.processQuery(res, aid)
       return res
@@ -212,14 +217,20 @@ export namespace Mspt {
     return msg
   }
 
+  type QueryingPreference = 'database' | 'sapk'
+
   export interface Config {
     sapkUri: string
     sapkTriUri: string
+    aidQueryingPreference: QueryingPreference
+    rankQueryingPreference: QueryingPreference
   }
 
   export const Config: Schema<Config> = Schema.object({
     sapkUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl4'),
-    sapkTriUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl3')
+    sapkTriUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl3'),
+    aidQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
+    rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
   })
   
 }
