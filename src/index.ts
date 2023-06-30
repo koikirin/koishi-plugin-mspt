@@ -29,7 +29,7 @@ export class Mspt {
         let account_id
         if (pattern[0] === '$') account_id = parseInt(pattern.slice(1))
         else {
-          const res = await ctx.mahjong.ms.execute('searchAccountByPattern', {
+          const res = await ctx.mahjong.majsoul.execute('searchAccountByPattern', {
             search_next: false,
             pattern: pattern,
           })
@@ -37,7 +37,7 @@ export class Mspt {
         }
         if (!account_id) return '查询失败'
         
-        const res = (await ctx.mahjong.ms.execute('fetchAccountInfo', {
+        const res = (await ctx.mahjong.majsoul.execute('fetchAccountInfo', {
           account_id
         })).account
         if (!res) return '查询失败'
@@ -94,7 +94,7 @@ export class Mspt {
     
     // Update account_map
     Object.values(res).forEach((v, _) => {
-      this.ctx.mahjong.ms.setAccountMap(v.account_id, v.nickname)
+      this.ctx.mahjong.majsoul.setAccountMap(v.account_id, v.nickname)
     })
     return Object.values(res).map(v => v.account_id)
   }
@@ -140,7 +140,7 @@ export class Mspt {
 
 
   async queryAidFromOb(res: Dict<Mspt.Result>, nickname: string) {
-    return this.ctx.mahjong.ms.queryAccountIdFromNickname(nickname)
+    return this.ctx.mahjong.majsoul.queryAccountIdFromNickname(nickname)
   }
 
   async queryRankFromOb(res: Dict<Mspt.Result>, accoundId: number) {
@@ -174,7 +174,7 @@ export class Mspt {
   }
 
   generateReply(res: Mspt.Result) {
-    let msg = `${res.nickname} (${this.ctx.mahjong.ms.getAccountZone(res.account_id)}${res.account_id}) `
+    let msg = `${res.nickname} (${this.ctx.mahjong.majsoul.getAccountZone(res.account_id)}${res.account_id}) `
     msg += `${res.m4||"[]"} ${res.m3||"[]"}`
     if (res.hm3 || res.hm4)
       msg += `\n最高段位 ${res.hm4||"[]"} ${res.hm3||"[]"}`

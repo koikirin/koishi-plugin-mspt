@@ -9,7 +9,7 @@ class OBError extends Error {
 }
 
 export async function queryFromObById(ctx: Context, account_id: number): Promise<Mspt.Result> {
-  let cursor = ctx.mahjong.db.db('majob').collection('majsoul').find({
+  let cursor = ctx.mahjong.database.db('majob').collection('majsoul').find({
     'wg.players.account_id': account_id
   }).sort('starttime', 'descending').limit(1)
   const doc = await cursor.next()
@@ -59,7 +59,7 @@ async function getDptFromPaipu(ctx: Context, uuid: string, account_id: number, d
     for (const player of ret.result) 
       if (player.account_id == account_id) return [player.point, '实时(订阅)']
   } else {
-    const paipu = await ctx.mahjong.ms.getPaipuHead(uuid)
+    const paipu = await ctx.mahjong.majsoul.getPaipuHead(uuid)
     if (paipu.err) {
       if (paipu.code == 1203) throw new OBError('实时(对局中)')
       else throw new OBError('炸了(服务器不可用)')
