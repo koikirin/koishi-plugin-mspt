@@ -15,6 +15,8 @@ const levelData: { [key: number]: [string, number, number] } = {
   502: ['雀圣二', 6000, 3000],
   503: ['雀圣三', 9000, 4500],
   601: ['魂天', 999999, 10000],
+  // For downgraded 701
+  603: ['雀圣三', 9000, 4500],
 }
 
 export function judgeLevel(level: number): string {

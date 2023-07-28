@@ -12,9 +12,13 @@ export class Mspt {
     this.http = ctx.http.extend({})
     ctx.command('mspt <pattern:text>', '查询雀魂PT')
       .option('sapk', '-f')
-      .usage('pattern为NICKNAME/$AID')
+      .usage('pattern为NICKNAME/$AID/$$EID')
       .action(async ({ session, options }, pattern) => {
         if (!pattern) return session.execute('mspt -h')
+        if (pattern.startsWith('$$')) {
+          await session.execute(`mspt2 ${pattern.slice(2)}`)
+          return
+        } 
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else ret = await this.processQuery({}, null, pattern, options.sapk)
@@ -202,7 +206,7 @@ export namespace Mspt {
       if (level % 10 === 1) level -= 98
       else level -= 1
       score = levelStart(level)
-    } if (!iscl && score >= levelMax(level)) {
+    } else if (!iscl && score >= levelMax(level)) {
       if (level % 10 === 3) level += 98
       else level += 1
       score = levelStart(level)
