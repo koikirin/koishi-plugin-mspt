@@ -35,9 +35,9 @@ export function levelStart(level: number): number {
 }
 
 export function judgeRoom(room_level: number): string {
-    if (room_level === 0) return '总体'
-    else if (room_level == 1) return '金之间'
-    else if (room_level == 2) return '玉之间'
-    else if (room_level == 3) return '王座之间'
-    else throw RangeError(`${room_level} is not valid room level`)
+  if (room_level === 0) return '总体'
+  else if (room_level === 1) return '金之间'
+  else if (room_level === 2) return '玉之间'
+  else if (room_level === 3) return '王座之间'
+  else throw RangeError(`${room_level} is not valid room level`)
 }

@@ -18,7 +18,7 @@ export class Mspt {
         if (pattern.startsWith('$$')) {
           await session.execute(`mspt2 ${pattern.slice(2)}`)
           return
-        } 
+        }
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else ret = await this.processQuery({}, null, pattern, options.sapk)
@@ -30,28 +30,28 @@ export class Mspt {
       .usage('pattern为EID/$AID')
       .action(async ({ session }, pattern) => {
         if (!pattern) return session.execute('mspt2 -h')
-        let account_id
-        if (pattern[0] === '$') account_id = parseInt(pattern.slice(1))
+        let accountId
+        if (pattern[0] === '$') accountId = parseInt(pattern.slice(1))
         else {
           const res = await ctx.mahjong.majsoul.execute('searchAccountByPattern', {
             search_next: false,
-            pattern: pattern,
+            pattern,
           })
-          account_id = res.decode_id
+          accountId = res.decode_id
         }
-        if (!account_id) return '查询失败'
-        
+        if (!accountId) return '查询失败'
+
         const res = (await ctx.mahjong.majsoul.execute('fetchAccountInfo', {
-          account_id
+          account_id: accountId,
         })).account
         if (!res) return '查询失败'
 
-        let result: Mspt.Result = {
-          account_id: res.account_id,
+        const result: Mspt.Result = {
+          accountId: res.account_id,
           nickname: res.nickname,
           m4: Mspt.generateDescription(res, 'level'),
           m3: Mspt.generateDescription(res, 'level3'),
-          src: 'Server'
+          src: 'Server',
         }
 
         return this.generateReply(result)
@@ -62,12 +62,12 @@ export class Mspt {
     const quotename = encodeURIComponent(nickname)
     try {
       const data = await this.http.get(`${this.config.sapkUri}/search_player/${quotename}`, {
-        params: { limit: 9 }
+        params: { limit: 9 },
       })
       for (const d of data || []) {
         if (d.nickname.trim() === nickname) {
           res[d.id] = res[d.id] || {
-            account_id: d.id,
+            accountId: d.id,
             nickname: d.nickname,
           }
           res[d.id].m4 = Mspt.generateDescription(d)
@@ -80,12 +80,12 @@ export class Mspt {
 
     try {
       const data = await this.http.get(`${this.config.sapkTriUri}/search_player/${quotename}`, {
-        params: { limit: 9 }
+        params: { limit: 9 },
       })
       for (const d of data || []) {
         if (d.nickname.trim() === nickname) {
           res[d.id] = res[d.id] || {
-            account_id: d.id,
+            accountId: d.id,
             nickname: d.nickname,
           }
           res[d.id].m3 = Mspt.generateDescription(d)
@@ -95,23 +95,23 @@ export class Mspt {
     } catch (e) {
       this.ctx.logger('mspt').debug(`Fail to query ${nickname} from sapk`)
     }
-    
+
     // Update account_map
     Object.values(res).forEach((v, _) => {
-      this.ctx.mahjong.majsoul.setAccountMap(v.account_id, v.nickname)
+      this.ctx.mahjong.majsoul.setAccountMap(v.accountId, v.nickname)
     })
-    return Object.values(res).map(v => v.account_id)
+    return Object.values(res).map(v => v.accountId)
   }
 
   async queryRankFromSapk(res: Dict<Mspt.Result>, accountId: number, forceUpdate: boolean = false) {
     if (accountId in res && !forceUpdate) return true
     try {
       const d = await this.http.get(`${this.config.sapkUri}/player_stats/${accountId}/1262304000000/${Date.now()}`, {
-        params: { mode: '16.12.9.15.11.8' }
+        params: { mode: '16.12.9.15.11.8' },
       })
       if (d && !('error' in d)) {
         res[d.id] = res[d.id] || {
-          account_id: d.id,
+          accountId: d.id,
           nickname: d.nickname,
         }
         res[d.id].m4 = Mspt.generateDescription(d)
@@ -124,11 +124,11 @@ export class Mspt {
 
     try {
       const d = await this.http.get(`${this.config.sapkTriUri}/player_stats/${accountId}/1262304000000/${Date.now()}`, {
-        params: { mode: '26.24.22.25.23.21' }
+        params: { mode: '26.24.22.25.23.21' },
       })
       if (d && !('error' in d)) {
         res[d.id] = res[d.id] || {
-          account_id: d.id,
+          accountId: d.id,
           nickname: d.nickname,
         }
         res[d.id].m3 = Mspt.generateDescription(d)
@@ -138,10 +138,9 @@ export class Mspt {
     } catch (e) {
       this.ctx.logger('mspt').debug(`Fail to query $${accountId} from sapk`)
     }
-    
+
     return true
   }
-
 
   async queryAidFromOb(res: Dict<Mspt.Result>, nickname: string) {
     return this.ctx.mahjong.majsoul.queryAccountIdFromNickname(nickname)
@@ -178,10 +177,9 @@ export class Mspt {
   }
 
   generateReply(res: Mspt.Result) {
-    let msg = `${res.nickname} (${this.ctx.mahjong.majsoul.getAccountZone(res.account_id)}${res.account_id}) `
-    msg += `${res.m4||"[]"} ${res.m3||"[]"}`
-    if (res.hm3 || res.hm4)
-      msg += `\n最高段位 ${res.hm4||"[]"} ${res.hm3||"[]"}`
+    let msg = `${res.nickname} (${this.ctx.mahjong.majsoul.getAccountZone(res.accountId)}${res.accountId}) `
+    msg += `${res.m4 || '[]'} ${res.m3 || '[]'}`
+    if (res.hm3 || res.hm4) { msg += `\n最高段位 ${res.hm4 || '[]'} ${res.hm3 || '[]'}` }
     msg += `\n*来源: ${res.src}`
     return msg
   }
@@ -189,7 +187,7 @@ export class Mspt {
 
 export namespace Mspt {
   export interface Result {
-    account_id: number
+    accountId: number
     nickname: string
     m4?: string
     m3?: string
@@ -212,12 +210,13 @@ export namespace Mspt {
       score = levelStart(level)
     }
     let msg = `[${judgeLevel(level)} `
-    if (judgeLevel(level) === '魂天')
+    if (judgeLevel(level) === '魂天') {
       msg += `${score}]`
-    else if (judgeLevel(level).slice(0, 2) === '魂天')
+    } else if (judgeLevel(level).slice(0, 2) === '魂天') {
       msg += `${score / 100}]`
-    else
+    } else {
       msg += `${score}/${levelMax(level)}]`
+    }
     return msg
   }
 
@@ -236,7 +235,7 @@ export namespace Mspt {
     aidQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
     rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
   })
-  
+
 }
 
 export default Mspt
