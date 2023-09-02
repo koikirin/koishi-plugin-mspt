@@ -10,7 +10,7 @@ export class Mspt {
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
-    ctx.command('mspt <pattern:text>', '查询雀魂PT')
+    ctx.command('mspt <pattern:rawtext>', '查询雀魂PT')
       .option('sapk', '-f')
       .usage('pattern为NICKNAME/$AID/$$EID')
       .action(async ({ session, options }, pattern) => {
