@@ -22,7 +22,7 @@ export class Mspt {
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else ret = await this.processQuery({}, null, pattern, options.sapk)
-        if (ret) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
+        if (ret && Object.keys(ret).length) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
         else return '查询失败'
       })
 
