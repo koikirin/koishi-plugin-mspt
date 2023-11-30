@@ -4,7 +4,7 @@ import * as OB from './ob'
 import { judgeLevel, levelMax, levelStart } from './utils'
 
 export class Mspt {
-  static using = ['mahjong']
+  static inject = ['mahjong', 'mahjong.majsoul', 'mahjong.database']
 
   http: Quester
 
@@ -14,7 +14,7 @@ export class Mspt {
       .option('sapk', '-f')
       .usage('pattern为NICKNAME/$AID/$$EID')
       .action(async ({ session, options }, pattern) => {
-        if (!pattern) return session.execute('mspt -h')
+        if (!pattern) return session.execute('mspt -h', true)
         if (pattern.startsWith('$$')) {
           await session.execute(`mspt2 ${pattern.slice(2)}`)
           return
@@ -29,7 +29,7 @@ export class Mspt {
     ctx.command('mspt/mspt2 <pattern:string>', '查询雀魂PT')
       .usage('pattern为EID/$AID')
       .action(async ({ session }, pattern) => {
-        if (!pattern) return session.execute('mspt2 -h')
+        if (!pattern) return session.execute('mspt2 -h', true)
         let accountId
         if (pattern[0] === '$') accountId = parseInt(pattern.slice(1))
         else {
