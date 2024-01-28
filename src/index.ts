@@ -12,6 +12,7 @@ export class Mspt {
     this.http = ctx.http.extend({})
     ctx.command('mspt <pattern:rawtext>', '查询雀魂PT')
       .option('sapk', '-f')
+      .option('server', '-s')
       .usage('pattern为NICKNAME/$AID/$$EID')
       .action(async ({ session, options }, pattern) => {
         if (!pattern) return session.execute('mspt -h', true)
@@ -21,7 +22,7 @@ export class Mspt {
         }
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
-        else ret = await this.processQuery({}, null, pattern, options.sapk)
+        else { ret = await this.processQuery({}, null, pattern, { rankQueryingPreference: options.server ? 'server' : options.sapk ? 'sapk' : undefined }) }
         if (ret && Object.keys(ret).length) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
         else return '查询失败'
       })
@@ -146,24 +147,41 @@ export class Mspt {
     return this.ctx.mahjong.majsoul.queryAccountIdFromNickname(nickname)
   }
 
-  async queryRankFromOb(res: Dict<Mspt.Result>, accoundId: number) {
-    const result = await OB.queryFromObById(this.ctx, accoundId)
-    if (result) res[accoundId] = result
+  async queryRankFromOb(res: Dict<Mspt.Result>, accountId: number) {
+    const result = await OB.queryFromObById(this.ctx, accountId)
+    if (result) res[accountId] = result
     return !!result
   }
 
-  async processQuery(res: Dict<Mspt.Result>, accoundId?: number, nickname?: string, forceSapk: boolean = false) {
-    if (accoundId) {
-      if (!forceSapk && this.config.rankQueryingPreference === 'database') {
-        const ret = await this.queryRankFromOb(res, accoundId)
-        if (!ret) this.ctx.logger('mspt').debug(`query $${accoundId}: OB Failed, rollback to sapk`)
+  async processQuery(res: Dict<Mspt.Result>, accountId?: number, nickname?: string, options: Mspt.Preference = {}) {
+    const { rankQueryingPreference = this.config.rankQueryingPreference, aidQueryingPreference = this.config.aidQueryingPreference } = options
+    if (accountId) {
+      if (rankQueryingPreference === 'database') {
+        const ret = await this.queryRankFromOb(res, accountId)
+        if (!ret) this.ctx.logger('mspt').debug(`query $${accountId}: OB Failed, rollback to server`)
         else return res
       }
-      await this.queryRankFromSapk(res, accoundId)
+      if (rankQueryingPreference === 'database' || rankQueryingPreference === 'server') {
+        const ret = (await this.ctx.mahjong.majsoul.execute('fetchAccountInfo', {
+          account_id: accountId,
+        })).account
+        if (!ret) this.ctx.logger('mspt').debug(`query $${accountId}: server Failed, rollback to sapk`)
+        else {
+          res[accountId] = {
+            accountId: ret.account_id,
+            nickname: ret.nickname,
+            m4: Mspt.generateDescription(ret, 'level'),
+            m3: Mspt.generateDescription(ret, 'level3'),
+            src: 'Server',
+          }
+          return res
+        }
+      }
+      await this.queryRankFromSapk(res, accountId)
       return res
     } else if (nickname) {
       let aids = []
-      if (!forceSapk && this.config.aidQueryingPreference === 'database') {
+      if (aidQueryingPreference === 'database') {
         aids = await this.queryAidFromOb(res, nickname)
         this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from OB: ${aids}`)
       }
@@ -171,7 +189,7 @@ export class Mspt {
         aids = [...new Set([...aids, ...await this.queryAidFromSapk(res, nickname)])]
         this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from sapk: ${aids}`)
       }
-      for (const aid of aids) await this.processQuery(res, aid)
+      for (const aid of aids) await this.processQuery(res, aid, undefined, options)
       return res
     }
   }
@@ -220,20 +238,22 @@ export namespace Mspt {
     return msg
   }
 
-  type QueryingPreference = 'database' | 'sapk'
+  type QueryingPreference = 'database' | 'sapk' | 'server'
 
-  export interface Config {
+  export interface Preference {
+    aidQueryingPreference?: QueryingPreference
+    rankQueryingPreference?: QueryingPreference
+  }
+  export interface Config extends Preference {
     sapkUri: string
     sapkTriUri: string
-    aidQueryingPreference: QueryingPreference
-    rankQueryingPreference: QueryingPreference
   }
 
   export const Config: Schema<Config> = Schema.object({
     sapkUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl4'),
     sapkTriUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl3'),
     aidQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
-    rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
+    rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk', 'server']).default('sapk'),
   })
 
 }
