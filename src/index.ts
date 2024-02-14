@@ -3,6 +3,12 @@ import { Context, Dict, Quester, Schema } from 'koishi'
 import * as OB from './ob'
 import { judgeLevel, levelMax, levelStart } from './utils'
 
+declare module 'koishi' {
+  interface User {
+    'mspt/bind': string
+  }
+}
+
 export class Mspt {
   static inject = ['mahjong', 'mahjong.majsoul', 'mahjong.database']
 
@@ -10,11 +16,20 @@ export class Mspt {
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
-    ctx.command('mspt <pattern:rawtext>', '查询雀魂PT')
+
+    ctx.model.extend('user', {
+      'mspt/bind': 'string',
+    })
+
+    ctx.command('mspt [pattern:rawtext]', '查询雀魂PT')
       .option('sapk', '-f')
       .option('server', '-s')
+      .option('bind', '-b', { descPath: '绑定至当前用户' })
       .usage('pattern为NICKNAME/$AID/$$EID')
+      .userFields(['mspt/bind'])
       .action(async ({ session, options }, pattern) => {
+        if (options.bind) session.user['mspt/bind'] = pattern ?? ''
+        pattern ||= session.user['mspt/bind']
         if (!pattern) return session.execute('mspt -h', true)
         if (pattern.startsWith('$$')) {
           await session.execute(`mspt2 ${pattern.slice(2)}`)
