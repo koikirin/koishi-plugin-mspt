@@ -1,5 +1,5 @@
 import { } from '@hieuzest/koishi-plugin-mahjong'
-import { Context, Dict, Quester, Schema } from 'koishi'
+import { Context, Dict, Quester, Schema, Session } from 'koishi'
 import * as OB from './ob'
 import { judgeLevel, levelMax, levelStart } from './utils'
 
@@ -10,27 +10,27 @@ declare module 'koishi' {
 }
 
 export class Mspt {
-  static inject = ['mahjong', 'mahjong.majsoul', 'mahjong.database']
-
   http: Quester
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
 
+    ctx.i18n.define('zh-CN', require('./locales/zh-CN'))
+
     ctx.model.extend('user', {
       'mspt/bind': 'string',
     })
 
-    ctx.command('mspt [pattern:rawtext]', '查询雀魂PT')
+    ctx.command('mspt [pattern:rawtext]')
       .option('sapk', '-f')
       .option('server', '-s')
-      .option('bind', '-b', { descPath: '绑定至当前用户' })
-      .usage('pattern为NICKNAME/$AID/$$EID')
+      .option('bind', '-b')
+      .usage('pattern: NICKNAME / $AID / $$EID')
       .userFields(['mspt/bind'])
       .action(async ({ session, options }, pattern) => {
         if (options.bind) session.user['mspt/bind'] = pattern ?? ''
         pattern ||= session.user['mspt/bind']
-        if (!pattern) return session.execute('mspt -h', true)
+        if (!pattern) return options.bind ? '' : session.execute('mspt -h', true)
         if (pattern.startsWith('$$')) {
           await session.execute(`mspt2 ${pattern.slice(2)}`)
           return
@@ -38,15 +38,15 @@ export class Mspt {
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
         else { ret = await this.processQuery({}, null, pattern, { rankQueryingPreference: options.server ? 'server' : options.sapk ? 'sapk' : undefined }) }
-        if (ret && Object.keys(ret).length) return Object.values(ret).map(this.generateReply.bind(this)).join('\n')
-        else return '查询失败'
+        if (ret && Object.keys(ret).length) return Object.values(ret).map(r => this.generateReply(session, r)).join('\n')
+        else return session.text('.failed')
       })
 
-    ctx.command('mspt/mspt2 <pattern:string>', '查询雀魂PT')
+    ctx.command('mspt/mspt2 <pattern:string>')
       .usage('pattern为EID/$AID')
       .action(async ({ session }, pattern) => {
         if (!pattern) return session.execute('mspt2 -h', true)
-        let accountId
+        let accountId: number
         if (pattern[0] === '$') accountId = parseInt(pattern.slice(1))
         else {
           const res = await ctx.mahjong.majsoul.execute('searchAccountByPattern', {
@@ -55,22 +55,22 @@ export class Mspt {
           })
           accountId = res.decode_id
         }
-        if (!accountId) return '查询失败'
+        if (!accountId) return session.text('.failed')
 
         const res = (await ctx.mahjong.majsoul.execute('fetchAccountInfo', {
           account_id: accountId,
         })).account
-        if (!res) return '查询失败'
+        if (!res) return session.text('.failed')
 
         const result: Mspt.Result = {
           accountId: res.account_id,
           nickname: res.nickname,
           m4: Mspt.generateDescription(res, 'level'),
           m3: Mspt.generateDescription(res, 'level3'),
-          src: 'Server',
+          src: 'server',
         }
 
-        return this.generateReply(result)
+        return this.generateReply(session, result)
       })
   }
 
@@ -87,7 +87,7 @@ export class Mspt {
             nickname: d.nickname,
           }
           res[d.id].m4 = Mspt.generateDescription(d)
-          res[d.id].src = '牌谱屋'
+          res[d.id].src = 'sapk'
         }
       }
     } catch (e) {
@@ -105,7 +105,7 @@ export class Mspt {
             nickname: d.nickname,
           }
           res[d.id].m3 = Mspt.generateDescription(d)
-          res[d.id].src = '牌谱屋'
+          res[d.id].src = 'sapk'
         }
       }
     } catch (e) {
@@ -132,7 +132,7 @@ export class Mspt {
         }
         res[d.id].m4 = Mspt.generateDescription(d)
         if ('max_level' in d) res[d.id].hm4 = Mspt.generateDescription(d, 'max_level')
-        res[d.id].src = '牌谱屋'
+        res[d.id].src = 'sapk'
       }
     } catch (e) {
       this.ctx.logger('mspt').debug(`Fail to query $${accountId} from sapk`, e)
@@ -149,7 +149,7 @@ export class Mspt {
         }
         res[d.id].m3 = Mspt.generateDescription(d)
         if ('max_level' in d) res[d.id].hm3 = Mspt.generateDescription(d, 'max_level')
-        res[d.id].src = '牌谱屋'
+        res[d.id].src = 'sapk'
       }
     } catch (e) {
       this.ctx.logger('mspt').debug(`Fail to query $${accountId} from sapk`)
@@ -187,7 +187,7 @@ export class Mspt {
             nickname: ret.nickname,
             m4: Mspt.generateDescription(ret, 'level'),
             m3: Mspt.generateDescription(ret, 'level3'),
-            src: 'Server',
+            src: 'server',
           }
           return res
         }
@@ -209,16 +209,19 @@ export class Mspt {
     }
   }
 
-  generateReply(res: Mspt.Result) {
+  generateReply(session: Session, res: Mspt.Result) {
     let msg = `${res.nickname} (${this.ctx.mahjong.majsoul.getAccountZone(res.accountId)}${res.accountId}) `
     msg += `${res.m4 || '[]'} ${res.m3 || '[]'}`
-    if (res.hm3 || res.hm4) { msg += `\n最高段位 ${res.hm4 || '[]'} ${res.hm3 || '[]'}` }
-    msg += `\n*来源: ${res.src}`
+    if (res.hm3 || res.hm4) { msg += `\n${session.text('.highest-level')} ${res.hm4 || '[]'} ${res.hm3 || '[]'}` }
+    msg += `\n*${session.text('.referer')}: ${session.text('.referer-' + res.src)}`
     return msg
   }
 }
 
 export namespace Mspt {
+
+  export const inject = ['mahjong', 'mahjong.majsoul', 'mahjong.database']
+
   export interface Result {
     accountId: number
     nickname: string
@@ -226,7 +229,7 @@ export namespace Mspt {
     m3?: string
     hm4?: string
     hm3?: string
-    src?: string
+    src?: 'failed' | 'failed-server' | 'server' | 'sapk' | 'sync' | 'subscription' | 'playing'
   }
 
   export function generateDescription(data, label: string = 'level') {
@@ -265,12 +268,11 @@ export namespace Mspt {
   }
 
   export const Config: Schema<Config> = Schema.object({
-    sapkUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl4'),
-    sapkTriUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl3'),
+    sapkUri: Schema.string().default('https://5-data.sapk.com/api/v2/pl4'),
+    sapkTriUri: Schema.string().default('https://5-data.sapk.com/api/v2/pl3'),
     aidQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
     rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk', 'server']).default('sapk'),
   })
-
 }
 
 export default Mspt

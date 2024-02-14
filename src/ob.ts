@@ -5,7 +5,11 @@ import Mspt from './index'
 const logger = new Logger('mspt.ob')
 
 class OBError extends Error {
+  message: Mspt.Result['src']
 
+  constructor(message: Mspt.Result['src']) {
+    super(message)
+  }
 }
 
 export async function queryFromObById(ctx: Context, accountId: number): Promise<Mspt.Result> {
@@ -16,14 +20,14 @@ export async function queryFromObById(ctx: Context, accountId: number): Promise<
 
   if (!doc) return
   const uuid = doc._id as unknown as string
-  let dpt, src
+  let dpt, src: Mspt.Result['src']
   try {
     [dpt, src] = await getDptFromPaipu(ctx, uuid, accountId, doc)
   } catch (e) {
     if (e instanceof OBError) {
       [dpt, src] = [0, e.message]
     } else {
-      [dpt, src] = [0, '炸了']
+      [dpt, src] = [0, 'failed']
       logger.error('Unexpected error', e)
     }
   }
@@ -53,15 +57,15 @@ export async function queryFromObById(ctx: Context, accountId: number): Promise<
   }
 }
 
-async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, doc: any): Promise<[number, string]> {
+async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, doc: any): Promise<[number, Mspt.Result['src']]> {
   const ret = (doc && doc._id === uuid && doc.result) ? doc : null
   if (ret) {
-    for (const player of ret.result) { if (player.account_id === accountId) return [player.point, '实时(订阅)'] }
+    for (const player of ret.result) { if (player.account_id === accountId) return [player.point, 'subscription'] }
   } else {
     const paipu = await ctx.mahjong.majsoul.getPaipuHead(uuid)
     if (paipu.err) {
-      if (paipu.code === 1203) throw new OBError('实时(对局中)')
-      else throw new OBError('炸了(服务器不可用)')
+      if (paipu.code === 1203) throw new OBError('playing')
+      else throw new OBError('failed-server')
     }
 
     let seat = -1
@@ -73,7 +77,7 @@ async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, do
     }
     for (const p of paipu.head.result.players) {
       if (p.seat === seat) {
-        return [p.grading_score, '实时(同步)']
+        return [p.grading_score, 'sync']
       }
     }
   }

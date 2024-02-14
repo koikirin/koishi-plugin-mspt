@@ -34,10 +34,10 @@ export function levelStart(level: number): number {
   return levelData[level % 1000][2]
 }
 
-export function judgeRoom(room_level: number): string {
-  if (room_level === 0) return '总体'
-  else if (room_level === 1) return '金之间'
-  else if (room_level === 2) return '玉之间'
-  else if (room_level === 3) return '王座之间'
-  else throw RangeError(`${room_level} is not valid room level`)
+export function judgeRoom(roomLevel: number): string {
+  if (roomLevel === 0) return '总体'
+  else if (roomLevel === 1) return '金之间'
+  else if (roomLevel === 2) return '玉之间'
+  else if (roomLevel === 3) return '王座之间'
+  else throw RangeError(`${roomLevel} is not valid room level`)
 }
