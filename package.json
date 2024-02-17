@@ -1,27 +1,27 @@
 {
   "name": "@hieuzest/koishi-plugin-mspt",
   "description": "Query Majsoul PT",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
     "dist"
   ],
+  "author": "Hieuzest <girkirin@hotmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koikirin/koishi-plugin-mspt.git"
+  },
+  "homepage": "https://github.com/koikirin/koishi-plugin-mspt",
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "majsoul"
   ],
   "peerDependencies": {
     "koishi": "^4.16.1"
-  },
-  "koishi": {
-    "service": {
-      "required": [
-        "mahjong"
-      ]
-    }
   }
 }

@@ -220,7 +220,7 @@ export class Mspt {
 
 export namespace Mspt {
 
-  export const inject = ['mahjong', 'mahjong.majsoul', 'mahjong.database']
+  export const inject = ['database', 'mahjong', 'mahjong.majsoul', 'mahjong.database']
 
   export interface Result {
     accountId: number
