@@ -14,3 +14,16 @@ commands:
       referer-sync: 实时(同步)
       referer-subscription: 实时(订阅)
       referer-playing: 实时(对局中)
+  mspt2:
+    description: 查询雀魂PT
+    messages:
+      failed: 查询失败
+      highest-level: 最高段位
+      referer: 来源
+      referer-failed: 炸了
+      referer-failed-server: 炸了(服务器不可用)
+      referer-server: 服务器
+      referer-sapk: 牌谱屋
+      referer-sync: 实时(同步)
+      referer-subscription: 实时(订阅)
+      referer-playing: 实时(对局中)

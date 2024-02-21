@@ -43,7 +43,7 @@ export class Mspt {
       })
 
     ctx.command('mspt/mspt2 <pattern:string>')
-      .usage('pattern为EID/$AID')
+      .usage('pattern: EID / $AID')
       .action(async ({ session }, pattern) => {
         if (!pattern) return session.execute('mspt2 -h', true)
         let accountId: number
