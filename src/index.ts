@@ -30,7 +30,7 @@ export class Mspt {
       .action(async ({ session, options }, pattern) => {
         if (options.bind) session.user['mspt/bind'] = pattern ?? ''
         pattern ||= session.user['mspt/bind']
-        if (!pattern) return options.bind ? '' : session.execute('mspt -h', true)
+        if (!pattern) return options.bind ? '' : session.execute('help mspt')
         if (pattern.startsWith('$$')) {
           await session.execute(`mspt2 ${pattern.slice(2)}`)
           return
@@ -45,7 +45,7 @@ export class Mspt {
     ctx.command('mspt/mspt2 <pattern:string>')
       .usage('pattern: EID / $AID')
       .action(async ({ session }, pattern) => {
-        if (!pattern) return session.execute('mspt2 -h', true)
+        if (!pattern) return session.execute('help mspt2')
         let accountId: number
         if (pattern[0] === '$') accountId = parseInt(pattern.slice(1))
         else {
