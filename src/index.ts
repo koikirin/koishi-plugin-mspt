@@ -62,6 +62,8 @@ export class Mspt {
         })).account
         if (!res) return session.text('.failed')
 
+        this.ctx.mahjong.majsoul.setAccountMap(res.account_id, res.nickname)
+
         const result: Mspt.Result = {
           accountId: res.account_id,
           nickname: res.nickname,
