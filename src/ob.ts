@@ -63,7 +63,7 @@ async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, do
     for (const player of ret.result) { if (player.account_id === accountId) return [player.point, 'subscription'] }
   } else {
     const paipu = await ctx.mahjong.majsoul.getPaipuHead(uuid)
-    if (paipu.error) {
+    if (paipu.err) {
       if (paipu.code === 1203) throw new OBError('playing')
       else throw new OBError('failed-server')
     }
