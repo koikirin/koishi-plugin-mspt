@@ -1,6 +1,6 @@
 import { } from '@hieuzest/koishi-plugin-mahjong'
 import { Context, Logger } from 'koishi'
-import Mspt from './index'
+import { Mspt } from './index'
 
 const logger = new Logger('mspt.ob')
 
