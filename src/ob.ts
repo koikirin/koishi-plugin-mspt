@@ -15,7 +15,7 @@ class OBError extends Error {
 export async function queryFromObById(ctx: Context, accountId: number): Promise<Mspt.Result> {
   const cursor = ctx.mahjong.database.db('majob').collection('majsoul').find({
     'wg.players.account_id': accountId,
-  }).sort('starttime', 'descending').limit(1)
+  }).sort({ starttime: -1 }).limit(1)
   const doc = await cursor.next()
 
   if (!doc) return

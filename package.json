@@ -1,7 +1,7 @@
 {
   "name": "@hieuzest/koishi-plugin-mspt",
   "description": "Query Majsoul PT",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -22,6 +22,6 @@
     "majsoul"
   ],
   "peerDependencies": {
-    "koishi": "^4.16.1"
+    "koishi": "^4.17.8"
   }
 }
