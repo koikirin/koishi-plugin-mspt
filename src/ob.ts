@@ -5,7 +5,7 @@ import { Mspt } from './index'
 const logger = new Logger('mspt.ob')
 
 class OBError extends Error {
-  message: Mspt.Result['src']
+  declare message: Mspt.Result['src']
 
   constructor(message: Mspt.Result['src']) {
     super(message)
