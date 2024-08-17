@@ -32,8 +32,7 @@ export class Mspt {
         pattern ||= session.user['mspt/bind']
         if (!pattern) return options.bind ? '' : session.execute('help mspt')
         if (pattern.startsWith('$$')) {
-          await session.execute(`mspt2 ${pattern.slice(2)}`)
-          return
+          pattern = `$${ctx.mahjong.majsoul.decodeAccountId(parseInt(pattern.slice(2)))}`
         }
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
