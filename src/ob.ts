@@ -12,7 +12,7 @@ class OBError extends Error {
   }
 }
 
-export async function queryFromObById(ctx: Context, accountId: number): Promise<Mspt.Result> {
+export async function queryFromObById(ctx: Context, accountId: number): Promise<Mspt.Result | undefined> {
   const cursor = ctx.mahjong.database.db('majob').collection('majsoul').find({
     'wg.players.account_id': accountId,
   }).sort({ starttime: -1 }).limit(1)
@@ -26,9 +26,11 @@ export async function queryFromObById(ctx: Context, accountId: number): Promise<
   } catch (e) {
     if (e instanceof OBError) {
       [dpt, src] = [0, e.message]
+      if (src === 'failed-server' || src === 'failed') return
     } else {
       [dpt, src] = [0, 'failed']
       logger.error('Unexpected error', e)
+      return
     }
   }
 
@@ -65,7 +67,10 @@ async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, do
     const paipu = await ctx.mahjong.majsoul.getPaipuHead(uuid)
     if (paipu.err) {
       if (paipu.code === 1203) throw new OBError('playing')
-      else throw new OBError('failed-server')
+      else {
+        ctx.logger.debug(`unexpected paipu error: ${uuid}`)
+        throw new OBError('failed-server')
+      }
     }
 
     let seat = -1
@@ -80,5 +85,7 @@ async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, do
         return [p.grading_score, 'sync']
       }
     }
+    ctx.logger.debug(`unexpected paipu: ${uuid}`)
+    throw new OBError('failed')
   }
 }

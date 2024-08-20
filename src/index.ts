@@ -1,5 +1,5 @@
 import { } from '@hieuzest/koishi-plugin-mahjong'
-import { Context, Dict, Quester, Schema, Session } from 'koishi'
+import { Context, Dict, HTTP, Schema, Session } from 'koishi'
 import * as OB from './ob'
 import { judgeLevel, levelMax, levelStart } from './utils'
 
@@ -10,7 +10,9 @@ declare module 'koishi' {
 }
 
 export class Mspt {
-  http: Quester
+  static name = 'mspt'
+
+  http: HTTP
 
   constructor(private ctx: Context, private config: Mspt.Config) {
     this.http = ctx.http.extend({})
@@ -92,7 +94,7 @@ export class Mspt {
         }
       }
     } catch (e) {
-      this.ctx.logger('mspt').debug(`Fail to query ${nickname} from sapk`)
+      this.ctx.logger.debug(`Fail to query ${nickname} from sapk`)
     }
 
     try {
@@ -110,7 +112,7 @@ export class Mspt {
         }
       }
     } catch (e) {
-      this.ctx.logger('mspt').debug(`Fail to query ${nickname} from sapk`)
+      this.ctx.logger.debug(`Fail to query ${nickname} from sapk`)
     }
 
     // Update account_map
@@ -136,7 +138,7 @@ export class Mspt {
         res[d.id].src = 'sapk'
       }
     } catch (e) {
-      this.ctx.logger('mspt').debug(`Fail to query $${accountId} from sapk`, e)
+      this.ctx.logger.debug(`Fail to query $${accountId} from sapk`, e)
     }
 
     try {
@@ -153,7 +155,7 @@ export class Mspt {
         res[d.id].src = 'sapk'
       }
     } catch (e) {
-      this.ctx.logger('mspt').debug(`Fail to query $${accountId} from sapk`)
+      this.ctx.logger.debug(`Fail to query $${accountId} from sapk`)
     }
 
     return true
@@ -174,14 +176,14 @@ export class Mspt {
     if (accountId) {
       if (rankQueryingPreference === 'database') {
         const ret = await this.queryRankFromOb(res, accountId)
-        if (!ret) this.ctx.logger('mspt').debug(`query $${accountId}: OB Failed, rollback to server`)
+        if (!ret) this.ctx.logger.debug(`query $${accountId}: OB Failed, rollback to server`)
         else return res
       }
       if (rankQueryingPreference === 'database' || rankQueryingPreference === 'server') {
         const ret = (await this.ctx.mahjong.majsoul.execute('fetchAccountInfo', {
           account_id: accountId,
         })).account
-        if (!ret) this.ctx.logger('mspt').debug(`query $${accountId}: server Failed, rollback to sapk`)
+        if (!ret) this.ctx.logger.debug(`query $${accountId}: server Failed, rollback to sapk`)
         else {
           res[accountId] = {
             accountId: ret.account_id,
@@ -199,11 +201,11 @@ export class Mspt {
       let aids = []
       if (aidQueryingPreference === 'database') {
         aids = await this.queryAidFromOb(res, nickname)
-        this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from OB: ${aids}`)
+        this.ctx.logger.debug(`query ${nickname}: Query aids from OB: ${aids}`)
       }
       if (!aids.length) {
         aids = [...new Set([...aids, ...await this.queryAidFromSapk(res, nickname)])]
-        this.ctx.logger('mspt').debug(`query ${nickname}: Query aids from sapk: ${aids}`)
+        this.ctx.logger.debug(`query ${nickname}: Query aids from sapk: ${aids}`)
       }
       for (const aid of aids) await this.processQuery(res, aid, undefined, options)
       return res
@@ -220,7 +222,6 @@ export class Mspt {
 }
 
 export namespace Mspt {
-
   export const inject = ['database', 'mahjong', 'mahjong.majsoul', 'mahjong.database']
 
   export interface Result {
