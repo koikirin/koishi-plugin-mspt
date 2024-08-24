@@ -76,7 +76,7 @@ async function getDptFromPaipu(ctx: Context, uuid: string, accountId: number, do
     let seat = -1
     for (const p of paipu.head.accounts) {
       if (p.account_id === accountId) {
-        seat = p.seat
+        seat = p.seat ?? 0
         break
       }
     }
