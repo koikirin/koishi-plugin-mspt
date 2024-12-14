@@ -41,3 +41,25 @@ export function judgeRoom(roomLevel: number): string {
   else if (roomLevel === 3) return '王座之间'
   else throw RangeError(`${roomLevel} is not valid room level`)
 }
+
+export type AccountZone = 'Ⓒ' | 'Ⓙ' | 'Ⓔ' | 'Ⓝ'
+
+export function decodeAccountId(e: number) {
+  const fa = 67108863, ba = -67108864
+  if ((e -= 1e7) <= 0) { return 0 }
+  let t = e & fa
+  return t = (131071 & t) << 9 | t >> 17,
+  t = (131071 & t) << 9 | t >> 17,
+  t = (131071 & t) << 9 | t >> 17,
+  t = (131071 & t) << 9 | t >> 17,
+  t = (131071 & t) << 9 | t >> 17,
+  (e & ba) + t ^ 6139246
+}
+
+export function getAccountZone(accountId: number): AccountZone {
+  const prefix = accountId >> 23
+  if (prefix >= 0 && prefix <= 6) return 'Ⓒ'
+  else if (prefix >= 7 && prefix <= 12) return 'Ⓙ'
+  else if (prefix >= 13 && prefix <= 15) return 'Ⓔ'
+  else return 'Ⓝ'
+}

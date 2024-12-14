@@ -1,7 +1,7 @@
 import { } from '@hieuzest/koishi-plugin-mahjong'
 import { Context, Dict, HTTP, Schema, Session } from 'koishi'
 import * as OB from './ob'
-import { judgeLevel, levelMax, levelStart } from './utils'
+import { decodeAccountId, getAccountZone, judgeLevel, levelMax, levelStart } from './utils'
 
 declare module 'koishi' {
   interface User {
@@ -34,7 +34,7 @@ export class Mspt {
         pattern ||= session.user['mspt/bind']
         if (!pattern) return options.bind ? '' : session.execute('help mspt')
         if (pattern.startsWith('$$')) {
-          pattern = `$${ctx.mahjong.majsoul.decodeAccountId(parseInt(pattern.slice(2)))}`
+          pattern = `$${decodeAccountId(parseInt(pattern.slice(2)))}`
         }
         let ret: Dict<Mspt.Result> = null
         if (pattern[0] === '$') ret = await this.processQuery({}, parseInt(pattern.slice(1)), null)
@@ -116,9 +116,11 @@ export class Mspt {
     }
 
     // Update account_map
-    Object.values(res).forEach((v, _) => {
-      this.ctx.mahjong.majsoul.setAccountMap(v.accountId, v.nickname)
-    })
+    if (this.ctx.mahjong?.majsoul) {
+      Object.values(res).forEach((v, _) => {
+        this.ctx.mahjong.majsoul.setAccountMap(v.accountId, v.nickname)
+      })
+    }
     return Object.values(res).map(v => v.accountId)
   }
 
@@ -213,7 +215,7 @@ export class Mspt {
   }
 
   generateReply(session: Session, res: Mspt.Result) {
-    let msg = `${res.nickname} (${this.ctx.mahjong.majsoul.getAccountZone(res.accountId)}${res.accountId}) `
+    let msg = `${res.nickname} (${getAccountZone(res.accountId)}${res.accountId}) `
     msg += `${res.m4 || '[]'} ${res.m3 || '[]'}`
     if (res.hm3 || res.hm4) { msg += `\n${session.text('.highest-level')} ${res.hm4 || '[]'} ${res.hm3 || '[]'}` }
     msg += `\n*${session.text('.referer')}: ${session.text('.referer-' + res.src)}`
@@ -222,7 +224,10 @@ export class Mspt {
 }
 
 export namespace Mspt {
-  export const inject = ['database', 'mahjong', 'mahjong.majsoul', 'mahjong.database']
+  export const inject = {
+    required: ['database'],
+    optional: ['mahjong', 'mahjong.majsoul', 'mahjong.database'],
+  }
 
   export interface Result {
     accountId: number
@@ -270,8 +275,8 @@ export namespace Mspt {
   }
 
   export const Config: Schema<Config> = Schema.object({
-    sapkUri: Schema.string().default('https://5-data.sapk.com/api/v2/pl4'),
-    sapkTriUri: Schema.string().default('https://5-data.sapk.com/api/v2/pl3'),
+    sapkUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl4'),
+    sapkTriUri: Schema.string().default('https://5-data.amae-koromo.com/api/v2/pl3'),
     aidQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk']).default('sapk'),
     rankQueryingPreference: Schema.union<QueryingPreference>(['database', 'sapk', 'server']).default('sapk'),
   })
