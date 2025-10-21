@@ -77,8 +77,8 @@ export class Mspt {
           nickname: res.nickname,
           m4: Mspt.generateDescription(res, 'level'),
           m3: Mspt.generateDescription(res, 'level3'),
-          raw4: res['level'],
-          raw3: res['level3'],
+          level4: Mspt.generateSpec(res, 'level'),
+          level3: Mspt.generateSpec(res, 'level3'),
           src: 'server',
         }
 
@@ -111,6 +111,12 @@ export class Mspt {
             ret = await this.processQuery({}, null, pattern, options)
           }
 
+          Object.values(ret).forEach((v, _) => {
+            delete v.m4
+            delete v.m3
+            delete v.hm4
+            delete v.hm3
+          })
           kCtx.type = 'json'
           kCtx.body = ret
         })
@@ -133,7 +139,7 @@ export class Mspt {
               nickname: d.nickname,
             }
             res[d.id].m4 = Mspt.generateDescription(d)
-            res[d.id].raw4 = d['level']
+            res[d.id].level4 = Mspt.generateSpec(d)
             res[d.id].src = 'sapk'
           }
         }
@@ -154,7 +160,7 @@ export class Mspt {
               nickname: d.nickname,
             }
             res[d.id].m3 = Mspt.generateDescription(d)
-            res[d.id].raw3 = d['level']
+            res[d.id].level3 = Mspt.generateSpec(d)
             res[d.id].src = 'sapk'
           }
         }
@@ -186,7 +192,7 @@ export class Mspt {
             nickname: d.nickname,
           }
           res[d.id].m4 = Mspt.generateDescription(d)
-          res[d.id].raw4 = d['level']
+          res[d.id].level4 = Mspt.generateSpec(d)
           if ('max_level' in d) res[d.id].hm4 = Mspt.generateDescription(d, 'max_level')
           res[d.id].src = 'sapk'
         }
@@ -206,7 +212,7 @@ export class Mspt {
             nickname: d.nickname,
           }
           res[d.id].m3 = Mspt.generateDescription(d)
-          res[d.id].raw3 = d['level']
+          res[d.id].level3 = Mspt.generateSpec(d)
           if ('max_level' in d) res[d.id].hm3 = Mspt.generateDescription(d, 'max_level')
           res[d.id].src = 'sapk'
         }
@@ -247,8 +253,8 @@ export class Mspt {
             nickname: ret.nickname,
             m4: Mspt.generateDescription(ret, 'level'),
             m3: Mspt.generateDescription(ret, 'level3'),
-            raw4: ret['level'],
-            raw3: ret['level3'],
+            level4: Mspt.generateSpec(ret, 'level'),
+            level3: Mspt.generateSpec(ret, 'level3'),
             src: 'server',
           }
           return res
@@ -294,8 +300,8 @@ export namespace Mspt {
     hm4?: string
     hm3?: string
     src?: 'failed' | 'failed-server' | 'server' | 'sapk' | 'sync' | 'subscription' | 'playing'
-    raw4?: any
-    raw3?: any
+    level4?: any
+    level3?: any
   }
 
   export function generateDescription(data, label: string = 'level') {
@@ -320,6 +326,31 @@ export namespace Mspt {
       msg += `${score}/${levelMax(level)}]`
     }
     return msg
+  }
+
+  export function generateSpec(data, label: string = 'level') {
+    let score = data[label].score + (data[label].delta || 0)
+    let level = data[label].id
+    const iscl = Math.ceil(level / 100) % 10 === 7
+    if (score < 0) {
+      if (level % 10 === 1) level -= 98
+      else level -= 1
+      score = levelStart(level)
+    } else if (!iscl && score >= levelMax(level)) {
+      if (level % 10 === 3) level += 98
+      else level += 1
+      score = levelStart(level)
+    }
+    const mlevel = judgeLevel(level)
+    let mscore = 0
+    if (mlevel === '魂天') {
+      mscore = score
+    } else if (mlevel.slice(0, 2) === '魂天') {
+      mscore = score / 100
+    } else {
+      mscore = score
+    }
+    return { lid: level, level: mlevel, score: mscore }
   }
 
   export type QueryingPreference = 'database' | 'sapk' | 'server'
