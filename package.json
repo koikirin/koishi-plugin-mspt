@@ -1,7 +1,7 @@
 {
   "name": "@hieuzest/koishi-plugin-mspt",
   "description": "Query Majsoul PT",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [

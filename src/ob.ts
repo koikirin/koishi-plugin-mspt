@@ -51,6 +51,14 @@ export async function queryFromObById(ctx: Context, accountId: number): Promise<
             ...player.level3,
           },
         }),
+        raw4: {
+          'delta': doc.wg.players.length === 4 ? dpt : 0,
+          ...player.level,
+        },
+        raw3: {
+          'delta': doc.wg.players.length === 3 ? dpt : 0,
+          ...player.level3,
+        },
         src,
         // hm4: '',
         // hm3: '',
