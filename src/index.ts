@@ -95,6 +95,11 @@ export class Mspt {
             matchType: type as any,
           }
           let ret: Dict<Mspt.Result> = null
+          if (!pattern) {
+            kCtx.body = 'Missing pattern'
+            kCtx.status = 400
+            return
+          }
 
           if (pattern.startsWith('$$')) {
             const accountId = decodeAccountId(parseInt(pattern.slice(2)))
